@@ -1,0 +1,73 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.1'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+description = 'prj_CRMS'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Sử dụng BOM platform để quản lý phiên bản Spring Boot 3.4.1
+    implementation platform('org.springframework.boot:spring-boot-dependencies:3.4.1')
+    
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    
+    // Cấu hình tường minh phiên bản Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testCompileOnly 'org.projectlombok:lombok:1.18.30'
+    testRuntimeOnly 'com.h2database:h2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// ─── Tích hợp build Frontend vào Spring Boot ───
+import org.apache.tools.ant.taskdefs.condition.Os
+
+tasks.register('npmInstall', Exec) {
+    workingDir 'University Course Registration System'
+    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        commandLine 'cmd', '/c', 'npm', 'install'
+    } else {
+        commandLine 'npm', 'install'
+    }
+}
+
+tasks.register('npmBuild', Exec) {
+    dependsOn 'npmInstall'
+    workingDir 'University Course Registration System'
+    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        commandLine 'cmd', '/c', 'npm', 'run', 'build'
+    } else {
+        commandLine 'npm', 'run', 'build'
+    }
+}
+
+tasks.register('copyFrontend', Copy) {
+    dependsOn 'npmBuild'
+    from 'University Course Registration System/dist'
+    into 'src/main/resources/static'
+}
+
+// Chạy copyFrontend trước khi đóng gói tài nguyên
+processResources.dependsOn 'copyFrontend'
